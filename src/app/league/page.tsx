@@ -19,6 +19,20 @@ type GrandPrix = {
   raceStartUtc: string
 }
 
+type PredictionType =
+  | 'giro_veloce'
+  | 'pole'
+  | 'vincitore'
+  | 'top_5'
+  | 'podio'
+  | 'safety_car'
+  | 'bandiera_rossa'
+
+type PredictionSlot = {
+  type: PredictionType
+  text: string
+}
+
 export default function LeaguePage() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
@@ -33,7 +47,14 @@ export default function LeaguePage() {
 
   // 🔽 stati per le MIE previsioni
   const [selectedGp, setSelectedGp] = useState<GrandPrix | null>(null)
-  const [predictions, setPredictions] = useState<string[]>(Array(6).fill(''))
+  const [predictions, setPredictions] = useState<PredictionSlot[]>(
+    Array(6)
+      .fill(null)
+      .map(() => ({
+        type: 'vincitore',
+        text: '',
+      })),
+  )
   const [predictionError, setPredictionError] = useState<string | null>(null)
   const [predictionSuccess, setPredictionSuccess] = useState<string | null>(null)
 
@@ -69,13 +90,20 @@ export default function LeaguePage() {
     const res = await fetch(`/api/gp/${gp.id}/prediction`)
     const data = await res.json()
 
-    const texts = Array(6).fill('')
+    const slots: PredictionSlot[] = Array(6)
+      .fill(null)
+      .map(() => ({ type: 'vincitore', text: '' }))
+
     data.forEach((p: any, idx: number) => {
       if (idx < 6) {
-        texts[idx] = p.payload?.text || ''
+        slots[idx] = {
+          type: (p.type as PredictionType) || 'vincitore',
+          text: p.payload?.text || '',
+        }
       }
     })
-    setPredictions(texts)
+
+    setPredictions(slots)
   }
 
   // 🔽 salva MIE previsioni
@@ -86,15 +114,16 @@ export default function LeaguePage() {
 
     try {
       for (let i = 0; i < predictions.length; i++) {
-        const text = predictions[i].trim()
-        if (!text) continue
+        const { type, text } = predictions[i]
+        const trimmed = text.trim()
+        if (!trimmed) continue
 
         const res = await fetch(`/api/gp/${selectedGp.id}/prediction`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            type: `slot_${i + 1}`,
-            payload: { text },
+            type, // es. "pole", "podio", ...
+            payload: { text: trimmed },
           }),
         })
 
@@ -355,18 +384,43 @@ export default function LeaguePage() {
             )}
 
             <div className="space-y-2">
-              {predictions.map((value, idx) => (
-                <div key={idx} className="flex items-center gap-2">
-                  <span className="w-6 text-sm text-slate-300">
+              {predictions.map((slot, idx) => (
+                <div
+                  key={idx}
+                  className="flex flex-col md:flex-row gap-2 items-stretch"
+                >
+                  <span className="w-6 text-sm text-slate-300 flex items-center">
                     {idx + 1}.
                   </span>
-                  <input
-                    className="flex-1 p-2 rounded bg-slate-900 border border-slate-700 text-sm"
-                    placeholder="Es. Pole: VER – Top3: VER, LEC, RUS"
-                    value={value}
+
+                  <select
+                    className="md:w-40 p-2 rounded bg-slate-900 border border-slate-700 text-sm"
+                    value={slot.type}
                     onChange={(e) => {
                       const copy = [...predictions]
-                      copy[idx] = e.target.value
+                      copy[idx] = {
+                        ...copy[idx],
+                        type: e.target.value as PredictionType,
+                      }
+                      setPredictions(copy)
+                    }}
+                  >
+                    <option value="giro_veloce">Giro veloce</option>
+                    <option value="pole">Pole</option>
+                    <option value="vincitore">Vincitore</option>
+                    <option value="top_5">Top 5</option>
+                    <option value="podio">Podio</option>
+                    <option value="safety_car">Safety car</option>
+                    <option value="bandiera_rossa">Bandiera rossa</option>
+                  </select>
+
+                  <input
+                    className="flex-1 p-2 rounded bg-slate-900 border border-slate-700 text-sm"
+                    placeholder="Es. VER, LEC, RUS..."
+                    value={slot.text}
+                    onChange={(e) => {
+                      const copy = [...predictions]
+                      copy[idx] = { ...copy[idx], text: e.target.value }
                       setPredictions(copy)
                     }}
                   />
