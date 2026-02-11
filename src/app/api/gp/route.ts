@@ -40,8 +40,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json(gps, { status: 200 });
   } catch (err) {
-    console.error("GET /api/gp/[id]/prediction/all error", err);
-    // Risposta sicura per non rompere il build
+    console.error("GET /api/gp error", err);
     return NextResponse.json([], { status: 200 });
   }
 }
@@ -71,8 +70,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json(gp, { status: 201 });
   } catch (err) {
-    console.error("POST /api/gp/[id]/prediction/all error", err);
-    // In build non verrà chiamato POST, ma meglio rispondere comunque
+    console.error("POST /api/gp error", err);
     return NextResponse.json(
       { error: "Errore interno" },
       { status: 500 }

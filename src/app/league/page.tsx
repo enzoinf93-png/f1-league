@@ -326,6 +326,31 @@ export default function LeaguePage() {
                   >
                     Vedi amici
                   </button>
+                  {user.isAdmin && (
+  <button
+    onClick={async () => {
+      if (!confirm(`Vuoi davvero eliminare il GP "${gp.name}"?`)) return;
+      try {
+        const res = await fetch(`/api/gp/${gp.id}`, {
+          method: "DELETE",
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.error || "Errore eliminazione GP");
+          return;
+        }
+        setGps((current) => current.filter((g) => g.id !== gp.id));
+      } catch (err) {
+        console.error(err);
+        alert("Errore eliminazione GP");
+      }
+    }}
+    className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm"
+  >
+    Elimina GP
+  </button>
+)}
+
                 </div>
               </div>
             ))}

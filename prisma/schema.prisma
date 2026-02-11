@@ -50,6 +50,6 @@ model Prediction {
   payload   Json
   createdAt DateTime   @default(now())
 
-  user  User     @relation(fields: [userId], references: [id])
-  gp    GrandPrix @relation(fields: [gpId], references: [id])
+  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gp   GrandPrix @relation(fields: [gpId], references: [id], onDelete: Cascade)
 }
