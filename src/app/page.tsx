@@ -51,7 +51,7 @@ export default function Home() {
             name="email"
             type="email"
             placeholder="Email"
-            className="w-full p-3 border rounded-lg text-black-500 placeholder:text-black-300"
+            className="w-full p-3 border rounded-lg text-blue-500 placeholder:text-blue-300"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -60,7 +60,7 @@ export default function Home() {
             name="password"
             type="password"
             placeholder="Password"
-            className="w-full p-3 border rounded-lg text-black-500 placeholder:text-black-300"
+            className="w-full p-3 border rounded-lg text-blue-500 placeholder:text-blue-300"
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
