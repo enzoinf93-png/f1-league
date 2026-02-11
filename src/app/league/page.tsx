@@ -55,6 +55,7 @@ export default function LeaguePage() {
         text: '',
       })),
   )
+  const [predictionsLocked, setPredictionsLocked] = useState(false)
   const [predictionError, setPredictionError] = useState<string | null>(null)
   const [predictionSuccess, setPredictionSuccess] = useState<string | null>(null)
 
@@ -86,6 +87,13 @@ export default function LeaguePage() {
     setSelectedGp(gp)
     setPredictionError(null)
     setPredictionSuccess(null)
+
+// 🔒 blocca se mancano meno di 10 minuti alle qualifiche
+  const quali = new Date(gp.qualiStartUtc)
+  const now = new Date()
+  const diffMs = quali.getTime() - now.getTime()
+  const diffMinutes = diffMs / (1000 * 60)
+  setPredictionsLocked(diffMinutes <= 10)
 
     const res = await fetch(`/api/gp/${gp.id}/prediction`)
     const data = await res.json()
@@ -363,79 +371,90 @@ export default function LeaguePage() {
         )}
 
         {/* 🔽 pannello MIE PREVISIONI */}
-        {selectedGp && (
-          <section className="bg-slate-800 p-4 rounded-xl mt-6">
-            <h2 className="font-semibold mb-2">
-              Previsioni – Round {selectedGp.roundNumber} – {selectedGp.name}
-            </h2>
-            <p className="text-xs text-slate-300 mb-3">
-              Puoi inserire fino a 6 previsioni (es. pole, top3, vincitore,
-              giro veloce...). Le previsioni si chiudono 10 minuti prima
-              dell&apos;inizio delle qualifiche.
-            </p>
+{selectedGp && (
+  <section className="bg-slate-800 p-4 rounded-xl mt-6">
+    <h2 className="font-semibold mb-2">
+      Previsioni – Round {selectedGp.roundNumber} – {selectedGp.name}
+    </h2>
+    <p className="text-xs text-slate-300 mb-1">
+      Puoi inserire fino a 6 previsioni (es. pole, top3, vincitore,
+      giro veloce...). Le previsioni si chiudono 10 minuti prima
+      dell&apos;inizio delle qualifiche.
+    </p>
 
-            {predictionError && (
-              <p className="text-sm text-red-400 mb-2">{predictionError}</p>
-            )}
-            {predictionSuccess && (
-              <p className="text-sm text-green-400 mb-2">
-                {predictionSuccess}
-              </p>
-            )}
+    {predictionsLocked && (
+      <p className="text-xs text-red-300 mb-2">
+        Le previsioni per questo GP sono chiuse (meno di 10 minuti alle
+        qualifiche).
+      </p>
+    )}
 
-            <div className="space-y-2">
-              {predictions.map((slot, idx) => (
-                <div
-                  key={idx}
-                  className="flex flex-col md:flex-row gap-2 items-stretch"
-                >
-                  <span className="w-6 text-sm text-slate-300 flex items-center">
-                    {idx + 1}.
-                  </span>
+    {predictionError && (
+      <p className="text-sm text-red-400 mb-2">{predictionError}</p>
+    )}
+    {predictionSuccess && (
+      <p className="text-sm text-green-400 mb-2">
+        {predictionSuccess}
+      </p>
+    )}
 
-                  <select
-                    className="md:w-40 p-2 rounded bg-slate-900 border border-slate-700 text-sm"
-                    value={slot.type}
-                    onChange={(e) => {
-                      const copy = [...predictions]
-                      copy[idx] = {
-                        ...copy[idx],
-                        type: e.target.value as PredictionType,
-                      }
-                      setPredictions(copy)
-                    }}
-                  >
-                    <option value="giro_veloce">Giro veloce</option>
-                    <option value="pole">Pole</option>
-                    <option value="vincitore">Vincitore</option>
-                    <option value="top_5">Top 5</option>
-                    <option value="podio">Podio</option>
-                    <option value="safety_car">Safety car</option>
-                    <option value="bandiera_rossa">Bandiera rossa</option>
-                  </select>
+    <div className="space-y-2">
+      {predictions.map((slot, idx) => (
+        <div
+          key={idx}
+          className="flex flex-col md:flex-row gap-2 items-stretch"
+        >
+          <span className="w-6 text-sm text-slate-300 flex items-center">
+            {idx + 1}.
+          </span>
 
-                  <input
-                    className="flex-1 p-2 rounded bg-slate-900 border border-slate-700 text-sm"
-                    placeholder="Es. VER, LEC, RUS..."
-                    value={slot.text}
-                    onChange={(e) => {
-                      const copy = [...predictions]
-                      copy[idx] = { ...copy[idx], text: e.target.value }
-                      setPredictions(copy)
-                    }}
-                  />
-                </div>
-              ))}
-            </div>
+          <select
+            className="md:w-40 p-2 rounded bg-slate-900 border border-slate-700 text-sm disabled:opacity-50"
+            value={slot.type}
+            disabled={predictionsLocked}
+            onChange={(e) => {
+              const copy = [...predictions]
+              copy[idx] = {
+                ...copy[idx],
+                type: e.target.value as PredictionType,
+              }
+              setPredictions(copy)
+            }}
+          >
+            <option value="giro_veloce">Giro veloce</option>
+            <option value="pole">Pole</option>
+            <option value="vincitore">Vincitore</option>
+            <option value="top_5">Top 5</option>
+            <option value="podio">Podio</option>
+            <option value="safety_car">Safety car</option>
+            <option value="bandiera_rossa">Bandiera rossa</option>
+          </select>
 
-            <button
-              onClick={savePredictions}
-              className="mt-3 bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded text-sm font-semibold"
-            >
-              Salva previsioni
-            </button>
-          </section>
-        )}
+          <input
+            className="flex-1 p-2 rounded bg-slate-900 border border-slate-700 text-sm disabled:opacity-50"
+            placeholder="Es. VER, LEC, RUS..."
+            value={slot.text}
+            disabled={predictionsLocked}
+            onChange={(e) => {
+              const copy = [...predictions]
+              copy[idx] = { ...copy[idx], text: e.target.value }
+              setPredictions(copy)
+            }}
+          />
+        </div>
+      ))}
+    </div>
+
+    <button
+      onClick={savePredictions}
+      disabled={predictionsLocked}
+      className="mt-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-600 disabled:cursor-not-allowed px-4 py-2 rounded text-sm font-semibold"
+    >
+      {predictionsLocked ? 'Previsioni chiuse' : 'Salva previsioni'}
+    </button>
+  </section>
+)}
+
       </div>
     </div>
   )
