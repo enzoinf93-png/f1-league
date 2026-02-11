@@ -1,10 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
 
-function getUserFromRequest(req: Request) {
+function getUserFromRequest(req: NextRequest) {
   const cookieHeader = req.headers.get("cookie") || "";
   const cookies = Object.fromEntries(
     cookieHeader
@@ -18,32 +18,37 @@ function getUserFromRequest(req: Request) {
   const token = cookies["auth"];
   if (!token) return null;
   try {
-    const payload = jwt.verify(token, JWT_SECRET) as any;
-    return payload;
+    return jwt.verify(token, JWT_SECRET) as any;
   } catch {
     return null;
   }
 }
 
-// DELETE /api/gp/[id]  -> elimina un GP (solo admin)
 export async function DELETE(
-  req: Request,
-  { params }: { params: { id: string } }
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await context.params; // 👈 qui aspettiamo la Promise
   const user = getUserFromRequest(req);
+
   if (!user || !user.isAdmin) {
     return NextResponse.json({ error: "Non autorizzato" }, { status: 401 });
   }
 
   try {
-    const gpId = params.id;
+    const gpId = id;
 
-    // Prima cancella tutte le previsioni collegate a questo GP
+    if (!gpId) {
+      return NextResponse.json(
+        { error: "GP id mancante nei params" },
+        { status: 400 }
+      );
+    }
+
     await prisma.prediction.deleteMany({
       where: { gpId },
     });
 
-    // Poi cancella il GP
     await prisma.grandPrix.delete({
       where: { id: gpId },
     });
