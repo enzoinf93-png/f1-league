@@ -74,9 +74,7 @@ export default function Home() {
           </button>
         </form>
 
-        <p className="text-center mt-4 text-sm text-gray-500">
-          Admin: admin@f1league.it / admin123
-        </p>
+        
       </div>
     </div>
   )
