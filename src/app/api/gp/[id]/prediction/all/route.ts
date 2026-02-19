@@ -1,49 +1,49 @@
-import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import jwt from 'jsonwebtoken'
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me'
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 
 function getUserFromRequest(req: Request) {
-  const cookieHeader = req.headers.get('cookie') || ''
+  const cookieHeader = req.headers.get('cookie') || '';
   const cookies = Object.fromEntries(
-    cookieHeader.split(';').map((c) => {
-      const [k, v] = c.trim().split('=')
-      return [k, v]
-    }),
-  )
-  const token = cookies['auth']
-  if (!token) return null
+    cookieHeader
+      .split(';')
+      .filter(Boolean)
+      .map((c) => {
+        const [k, v] = c.trim().split('=');
+        return [k, v];
+      }),
+  );
+  const token = cookies['auth'];
+  if (!token) return null;
   try {
-    const payload = jwt.verify(token, JWT_SECRET) as any
-    return payload
+    const payload = jwt.verify(token, JWT_SECRET) as any;
+    return payload;
   } catch {
-    return null
+    return null;
   }
 }
 
-// GET: tutte le previsioni per un GP (solo utenti della stessa lega)
+// GET: tutte le previsioni per un GP
 export async function GET(
   req: Request,
   context: { params: Promise<{ id: string }> },
 ) {
-  const { id } = await context.params
+  const { id } = await context.params;
 
-  const user = getUserFromRequest(req)
+  const user = getUserFromRequest(req);
   if (!user) {
-    return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
+    return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
   }
 
-  // troviamo il GP e verifichiamo che sia della sua lega
+  // troviamo il GP (ora globale, non più legato a una sola lega)
   const gp = await prisma.grandPrix.findUnique({
     where: { id },
-    include: {
-      league: true,
-    },
-  })
+  });
 
-  if (!gp || gp.leagueId !== user.leagueId) {
-    return NextResponse.json({ error: 'GP non trovato' }, { status: 404 })
+  if (!gp) {
+    return NextResponse.json({ error: 'GP non trovato' }, { status: 404 });
   }
 
   const predictions = await prisma.prediction.findMany({
@@ -57,11 +57,8 @@ export async function GET(
         },
       },
     },
-    orderBy: [
-      { user: { name: 'asc' } },
-      { createdAt: 'asc' },
-    ],
-  })
+    orderBy: [{ user: { name: 'asc' } }, { createdAt: 'asc' }],
+  });
 
   return NextResponse.json(
     {
@@ -74,5 +71,5 @@ export async function GET(
       predictions,
     },
     { status: 200 },
-  )
+  );
 }
