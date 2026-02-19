@@ -1,10 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
 
-function getUserFromRequest(req: Request) {
+function getUserFromRequest(req: NextRequest) {
   const cookieHeader = req.headers.get("cookie") || "";
   const cookies = Object.fromEntries(
     cookieHeader
@@ -18,23 +18,15 @@ function getUserFromRequest(req: Request) {
   const token = cookies["auth"];
   if (!token) return null;
   try {
-    const payload = jwt.verify(token, JWT_SECRET) as any;
-    return payload;
+    return jwt.verify(token, JWT_SECRET) as any;
   } catch {
     return null;
   }
 }
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   try {
-    const user = getUserFromRequest(req);
-    if (!user) {
-      // Nessun utente: in build o senza cookie, ritorniamo lista vuota
-      return NextResponse.json([], { status: 200 });
-    }
-
     const gps = await prisma.grandPrix.findMany({
-      where: { leagueId: user.leagueId },
       orderBy: { roundNumber: "asc" },
     });
 
@@ -45,7 +37,7 @@ export async function GET(req: Request) {
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const user = getUserFromRequest(req);
     if (!user || !user.isAdmin) {
@@ -64,15 +56,17 @@ export async function POST(req: Request) {
         fp1StartUtc: new Date(body.fp1StartUtc),
         qualiStartUtc: new Date(body.qualiStartUtc),
         raceStartUtc: new Date(body.raceStartUtc),
-        leagueId: user.leagueId,
       },
     });
 
     return NextResponse.json(gp, { status: 201 });
-  } catch (err) {
+  } catch (err: any) {
     console.error("POST /api/gp error", err);
     return NextResponse.json(
-      { error: "Errore interno" },
+      {
+        error: "Errore interno",
+        details: err?.message || String(err),
+      },
       { status: 500 }
     );
   }

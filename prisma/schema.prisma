@@ -7,38 +7,38 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
-
 model League {
-  id          String       @id @default(cuid())
+  id          String           @id @default(cuid())
   name        String
-  slug        String       @unique
+  slug        String           @unique
   adminId     String
-  createdAt   DateTime     @default(now())
-  grandPrixes GrandPrix[]
+  createdAt   DateTime         @default(now())
+  grandPrixes LeagueGrandPrix[]
   members     LeagueMember[]
+  invites     LeagueInvite[]
 }
 
 model GrandPrix {
-  id           String       @id @default(cuid())
-  name         String
-  roundNumber  Int
-  fp1StartUtc  DateTime
+  id            String           @id @default(cuid())
+  name          String
+  roundNumber   Int
+  fp1StartUtc   DateTime
   qualiStartUtc DateTime
-  raceStartUtc DateTime
-  leagueId     String
-  league       League       @relation(fields: [leagueId], references: [id])
-  predictions  Prediction[]
+  raceStartUtc  DateTime
+  predictions   Prediction[]
+  leagues       LeagueGrandPrix[]
 }
 
+
+
 model User {
-  id          String         @id @default(cuid())
-  email       String         @unique
-  password    String
-  name        String
-  isAdmin     Boolean        @default(false)
-  predictions Prediction[]
-  memberships LeagueMember[]
+  id           String         @id @default(cuid())
+  email        String         @unique
+  password     String
+  name         String
+  isAdmin      Boolean        @default(false)
+  predictions  Prediction[]
+  memberships  LeagueMember[]
 }
 
 model LeagueMember {
@@ -61,4 +61,25 @@ model Prediction {
 
   user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   gp   GrandPrix @relation(fields: [gpId], references: [id], onDelete: Cascade)
+}
+
+model LeagueInvite {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  league    League   @relation(fields: [leagueId], references: [id])
+  leagueId  String
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  used      Boolean  @default(false)
+}
+
+
+model LeagueGrandPrix {
+  id          String    @id @default(cuid())
+  league      League    @relation(fields: [leagueId], references: [id])
+  leagueId    String
+  grandPrix   GrandPrix @relation(fields: [grandPrixId], references: [id])
+  grandPrixId String
+
+  @@unique([leagueId, grandPrixId])
 }
