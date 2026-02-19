@@ -30,16 +30,16 @@ export default async function handler(
   }
 
   const token = jwt.sign(
-    {
-      sub: user.id,
-      email: user.email,
-      name: user.name,
-      isAdmin: user.isAdmin,
-      leagueId: user.leagueId,
-    },
-    JWT_SECRET,
-    { expiresIn: '7d' },
-  )
+  {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    isAdmin: user.isAdmin,
+  },
+  JWT_SECRET,
+  { expiresIn: '7d' },
+);
+
 
   res.setHeader(
     'Set-Cookie',
